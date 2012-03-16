@@ -1,0 +1,11 @@
+This repository contains some handy utility scripts for use with
+Evergreen.  They are written against master and kept relatively up to
+date with changes there.  They may work with earlier releases of
+Evergreen, but we make no guarantees.  In many cases they will need
+extensive modifications to work with anything but the most recent
+releases or master.
+
+They come with no documentation (other than the comments in the code)
+and absolutely no warranty of any kind whatsoever.  You use these at
+your own risk, and you assume full responsibility for whatever happens
+if you run these including but not limited to nuclear apocalypse.
