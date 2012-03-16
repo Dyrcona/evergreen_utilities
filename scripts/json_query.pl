@@ -54,6 +54,10 @@ if ($r && @$r) {
         print $csv->string . "\n";
         $count++;
     }
+} elsif (!defined($r)) {
+    print_err($editor->event);
+} else {
+    print(STDERR "Query returned no results\n");
 }
 
 $editor->finish;
@@ -69,4 +73,13 @@ sub read_query {
         return decode_json($content);
     }
     return undef;
+}
+
+sub print_err {
+    my $evt = shift;
+    my @keys = keys(%{$evt});
+    print(STDERR "An error occured:\n");
+    foreach my $key (@keys) {
+        printf(STDERR "\t%s => %s\n", $key, $evt->{$key});
+    }
 }
