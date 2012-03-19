@@ -9,3 +9,28 @@ They come with no documentation (other than the comments in the code)
 and absolutely no warranty of any kind whatsoever.  You use these at
 your own risk, and you assume full responsibility for whatever happens
 if you run these including but not limited to nuclear apocalypse.
+
+Several of these scripts use a custom JSONPrefs module in order to
+load settings or login information for Evergreen.  This module is
+available at:
+
+     http://git.mvlcstaff.org/?p=jason/JSONPrefs.git;a=summary
+
+The scripts generally look for these files in a myprefs.d subdirectory
+of the current user's home.  The most common such file is expected to
+be named evergreen.json and to contain a JSON object with fields
+containing login credentials for Evergreen.  Here is a sample of what
+that might look like:
+
+     {
+          "username" : "eguser",
+          "password" : "egpassword",
+          "workstation" : "egworkstation",
+          "type" : "staff"
+     }
+
+You, of course, replace eguser, egpassword, and egworkstation with the
+credentials appropriate to your system.
+
+The locations for finding these JSON files is currently hardcoded, but
+future development my make it more dynamic.  Patches welcome!
