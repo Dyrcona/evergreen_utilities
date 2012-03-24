@@ -47,7 +47,7 @@ if ($r && @$r) {
         }
         my @vals = ();
         foreach my $key (@keys) {
-            $row->{$key} =~ s/"?(.+?)"?$/$1/;
+            $row->{$key} =~ s/"?(.+?)"?$/$1/ if (defined($row->{$key}));
             push(@vals, $row->{$key});
         }
         $csv->combine(@vals);
