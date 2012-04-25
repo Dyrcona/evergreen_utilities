@@ -31,9 +31,9 @@ my $assetcom = 'OpenILS::Application::Cat::AssetCommon';
 
 my $script = OpenILS::Utils::Cronscript->new({nolockfile=>1});
 
-my $login = load_prefs($ENV{'HOME'} . "/myprefs.d/evergreen.json");
+my $login = JSONPrefs->load($ENV{'HOME'} . "/myprefs.d/evergreen.json");
 
-my $authtoken = $script->authenticate($login);
+my $authtoken = $script->authenticate($login->TO_JSON);
 
 die "failed to authenticate" unless($authtoken);
 
