@@ -32,5 +32,20 @@ that might look like:
 You, of course, replace eguser, egpassword, and egworkstation with the
 credentials appropriate to your system.
 
+The parameters.pl script needs a JSON file of properties to get access
+to your database server via Perl DBI:
+
+    {
+	"database" : "dbname",
+	"host" : "hostname",
+	"port" : "portnumber",
+	"user" : "username",
+	"password" : "password"
+    }
+
+The host and port parameters are optional if your DBI does not need
+them to connect to a database running on the localhost.  For the most
+part, I would recommend that you fill them in.
+
 The locations for finding these JSON files is currently hardcoded, but
 future development my make it more dynamic.  Patches welcome!
