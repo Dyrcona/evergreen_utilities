@@ -160,6 +160,7 @@ s.items_out, s.depth, s.global, m.fallthrough
 from config.circ_matrix_limit_set_map m
 join config.circ_limit_set s on m.limit_set = s.id
 left join config.circ_limit_set_circ_mod_map c on s.id = c.limit_set
+where m.active = 't'
 group by m.matchpoint, s.name, s.items_out, s.depth, s.global, m.fallthrough
 order by m.matchpoint asc
 EOQ
