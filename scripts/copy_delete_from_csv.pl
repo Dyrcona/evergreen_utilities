@@ -38,7 +38,7 @@ my $authtoken = $script->authenticate($login->TO_JSON);
 die "failed to authenticate" unless($authtoken);
 
 END {
-    $script->logout();
+    $script->logout() if ($authtoken);
 }
 
 my $editor = $script->editor(authtoken=>$authtoken,xact=>1);
