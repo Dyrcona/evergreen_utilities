@@ -20,21 +20,41 @@
 # disbatcher.pl (available elsewhere).
 
 # The default batch size is 10,000 records.  You can change this value
-# by giving this program a numeric argument.  For instance if you want
-# the batch size to be 1,000 records, you would run:
+# by specifying the --batch-size (-b) option with a numeric argument.
+# For instance, to run batches of 1,000 records you could use:
 #
-# authority_control_fields_batcher.pl 1000
+# authority_control_fields_batcher.pl -b 1000
+
+# You can specify a lower bound.  This is an integer value that the
+# bib retrieval will start at, so any batches will start at biblio
+# recorc entries with an id greater than this value.  You specify this
+# with the --lower-bound (-l) option:
+#
+# authority_control_fields_batcher.pl --lower-bound 1380695
+#
+# This option is useful if you ran some batches previously and want to
+# pick up any bibs added since the last batch.  To do this, you'd
+# specify the --end_id from the last line of your previous batch as
+# the lower bound.
+#
+# The default lower bound is 0 to run over all of your regular biblio
+# record entries.
+
+# Naturally, the options can be combined.
+
+
 
 use strict;
 use warnings;
 use DBI;
 use JSONPrefs;
+use Getopt::Long;
 
 my $batch_size = 10000;
+my $lower_bound = 0;
 
-if ($ARGV[0] && int($ARGV[0])) {
-    $batch_size = $ARGV[0];
-}
+my $result = GetOptions("lower-bound=i" => \$lower_bound,
+                        "batch-size=i" => \$batch_size);
 
 my $egdbi = JSONPrefs->load($ENV{'HOME'} . "/myprefs.d/egdbi.json");
 
@@ -54,7 +74,7 @@ my $q = <<END_OF_Q;
 SELECT id
 FROM biblio.record_entry
 WHERE deleted = 'f'
-AND id > 0
+AND id > $lower_bound
 AND (source IS NULL
      OR source IN (1,2))
 ORDER BY id ASC
@@ -73,6 +93,7 @@ foreach (@$ids) {
         $count = 0;
     }
 }
+# Catch the leftovers.
 if ($count) {
     print_it($start, $end);
 }
