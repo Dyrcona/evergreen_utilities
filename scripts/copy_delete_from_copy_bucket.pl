@@ -48,7 +48,7 @@ END {
     $script->logout() if ($authtoken);
 }
 
-my $editor = $script->editor(authtoken=>$authtoken,xact=>1);
+my $editor = $script->editor(authtoken=>$authtoken);
 die "Checkauth!" unless $editor->checkauth();
 
 # let's retrieve the copy statuses that should not be deleted.
@@ -89,6 +89,7 @@ while (my $bucket_id = shift @ARGV) {
         elsif (my $status = status_is_bad($acp)) {
             printf("skipping copy id %d, %s\n", $acp->id, $status->name);
         } else {
+            $editor->xact_begin;
             my $r = $assetcommon->delete_copy(
                 $editor,
                 1,
@@ -98,6 +99,7 @@ while (my $bucket_id = shift @ARGV) {
                 1,
                 0
             );
+            $editor->commit if ($editor->xact);
             if ($r && $apputils->event_code($r)) {
                 printf("failed to delete copy id %d, %s\n", $acp->id,
                        $r->{textcode});
