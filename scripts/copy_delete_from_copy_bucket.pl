@@ -99,7 +99,7 @@ while (my $bucket_id = shift @ARGV) {
                 1,
                 0
             );
-            $editor->commit if ($editor->xact);
+            $editor->xact_commit;
             if ($r && $apputils->event_code($r)) {
                 printf("failed to delete copy id %d, %s\n", $acp->id,
                        $r->{textcode});
