@@ -58,31 +58,30 @@ my $fh = *STDIN;
 # Load the copy data into an array:
 my @copies = ();
 while (my $row = $csv->getline($fh)) {
-    if ($row->[0] =~ /^3\d{13}$/) {
-        my $r = $editor->search_asset_copy(
-            [
-                {barcode => $row->[0], deleted => 'f'},
-                {
-                    flesh => 1,
-                    flesh_fields => {
-                        acp => [ 'call_number' ]
-                    }
+    my $r = $editor->search_asset_copy(
+        [
+            {
+                barcode => $row->[0], deleted => 'f'},
+            {
+                flesh => 1,
+                flesh_fields => {
+                    acp => [ 'call_number' ]
                 }
-            ]
-        );
-
-        if (ref($r) eq 'ARRAY') {
-            if (@$r) {
-                foreach (@$r) {
-                    if (my $stat = status_is_bad($_)) {
-                        printf("skipping %s, is %s\n", $_->barcode, $stat->name);
-                    } else {
-                        push(@copies, $_);
-                    }
-                }
-            } else {
-                printf("skipping %s, already deleted\n", $row->[0]);
             }
+        ]
+    );
+
+    if (ref($r) eq 'ARRAY') {
+        if (@$r) {
+            foreach (@$r) {
+                if (my $stat = status_is_bad($_)) {
+                    printf("skipping %s, is %s\n", $_->barcode, $stat->name);
+                } else {
+                    push(@copies, $_);
+                }
+            }
+        } else {
+            printf("skipping %s, already deleted\n", $row->[0]);
         }
     }
 }
