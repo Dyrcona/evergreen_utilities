@@ -48,7 +48,7 @@ END {
     $script->logout() if ($authtoken);
 }
 
-my $editor = $script->editor(authtoken=>$authtoken);
+my $editor = $script->editor(authtoken=>$authtoken,xact=>1);
 die "Checkauth!" unless $editor->checkauth();
 
 # let's retrieve the copy statuses that should not be deleted.
