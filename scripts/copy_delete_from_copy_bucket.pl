@@ -89,7 +89,6 @@ while (my $bucket_id = shift @ARGV) {
         elsif (my $status = status_is_bad($acp)) {
             printf("skipping copy id %d, %s\n", $acp->id, $status->name);
         } else {
-            $editor->xact_begin;
             my $r = $assetcommon->delete_copy(
                 $editor,
                 1,
