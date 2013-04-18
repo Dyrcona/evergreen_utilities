@@ -32,7 +32,7 @@
 use strict;
 
 my $XXXX = 0;
-my $src_dir = "~/Evergreen/";
+my $src_dir = $ENV{HOME} . "/Evergreen/";
 
 foreach my $arg (@ARGV) {
     if ($arg =~ /^-{1,2}X{1,4}$/) {
