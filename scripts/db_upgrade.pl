@@ -51,7 +51,8 @@ closedir($dh);
 foreach my $file (sort @files) {
     my $vers = substr($file, 0, index($file, "."));
     if ($vers gt $eg_version) {
-        if ($vers ne "XXXX" || $XXXX) {
+        # 20130508: --XXXX expanded to include YYYY scripts as well.
+        if (($vers ne 'XXXX' && $vers ne 'YYYY') || $XXXX) {
             my $script = $src_dir . $file;
             system("psql -veg_version=NULL -f $script");
         }
