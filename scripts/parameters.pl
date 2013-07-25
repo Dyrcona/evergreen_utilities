@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # ---------------------------------------------------------------
-# Copyright © 2012 Merrimack Valley Library Consortium
+# Copyright © 2012, 2013 Merrimack Valley Library Consortium
 # Jason Stephenson <jstephenson@mvlc.org>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -44,6 +44,7 @@ if ($dbh) {
     my $wb = Spreadsheet::WriteExcel->new($xlsFile);
     if ($wb) {
         do_circ_modifier($dbh, $wb);
+        do_copy_location($dbh, $wb);
         do_circ_matrix_matchpoint($dbh, $wb);
         do_circ_matrix_limit_test_map($dbh, $wb);
         do_grp_penalty_threshold($dbh, $wb);
@@ -169,6 +170,26 @@ EOQ
                    'global', 'fallthrough'];
     my $results = $dbh->selectall_arrayref($query, {Slice =>{}});
     my $ws = $wb->add_worksheet('items_out');
+    write_headers($ws, $columns, $wb->add_format(bold => 1));
+    write_rows($ws, $columns, $results);
+}
+
+sub do_copy_location {
+    my ($dbh, $wb) = @_;
+
+    my $query =<<EOQ;
+select l.name as location, o.shortname as owner, l.holdable, l.hold_verify,
+l.opac_visible, l.circulate
+from asset.copy_location l
+join actor.org_unit o
+on o.id = l.owning_lib
+order by l.name, o.shortname
+EOQ
+
+    my $columns = ['location', 'owner', 'holdable', 'hold_verify',
+                   'opac_visible', 'circulate'];
+    my $results = $dbh->selectall_arrayref($query, {Slice =>{}});
+    my $ws = $wb->add_worksheet('copy_locations');
     write_headers($ws, $columns, $wb->add_format(bold => 1));
     write_rows($ws, $columns, $results);
 }
