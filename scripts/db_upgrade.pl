@@ -30,15 +30,17 @@
 # does not rely on the JSONPrefs module.
 
 use strict;
+use feature 'switch';
 
 my $XXXX = 0;
+my $time = 0;
 my $src_dir = $ENV{HOME} . "/Evergreen/";
 
 foreach my $arg (@ARGV) {
-    if ($arg =~ /^-{1,2}X{1,4}$/) {
-        $XXXX = 1;
-    } else {
-        $src_dir = $arg;
+    given ($arg) {
+        when (/^-{1,2}X{1,4}$/) {$XXXX = 1;}
+        when (/^-{1,2}t(?:ime)?$/) {$time = 1;}
+        default {$src_dir = $arg;}
     }
 }
 $src_dir .= "/Open-ILS/src/sql/Pg/upgrade/";
@@ -54,7 +56,10 @@ foreach my $file (sort @files) {
         # 20130508: --XXXX expanded to include YYYY scripts as well.
         if (($vers ne 'XXXX' && $vers ne 'YYYY') || $XXXX) {
             my $script = $src_dir . $file;
+            my $start = time();
             system("psql -veg_version=NULL -f $script");
+            my $end = time() - $start;
+            print("$end seconds elapsed\n") if ($time);
         }
     }
 }
