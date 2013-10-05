@@ -34,6 +34,7 @@ use feature 'switch';
 
 my $XXXX = 0;
 my $time = 0;
+my $count = 0;
 my $src_dir = $ENV{HOME} . "/Evergreen/";
 
 foreach my $arg (@ARGV) {
@@ -55,6 +56,8 @@ foreach my $file (sort @files) {
     if ($vers gt $eg_version) {
         # 20130508: --XXXX expanded to include YYYY scripts as well.
         if (($vers ne 'XXXX' && $vers ne 'YYYY') || $XXXX) {
+            $count++;
+            print '-' x 72 . "\n";
             my $script = $src_dir . $file;
             my $start = time();
             system("psql -veg_version=NULL -f $script");
@@ -63,6 +66,7 @@ foreach my $file (sort @files) {
         }
     }
 }
+print '-' x 72 . "\n" if ($count);
 
 sub get_eg_version {
     use DBI;
