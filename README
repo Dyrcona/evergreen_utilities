@@ -32,20 +32,11 @@ that might look like:
 You, of course, replace eguser, egpassword, and egworkstation with the
 credentials appropriate to your system.
 
-The parameters.pl script needs a JSON file of properties to get access
-to your database server via Perl DBI:
+NOTE: I am working on eliminating the above requirements.
 
-    {
-	"database" : "dbname",
-	"host" : "hostname",
-	"port" : "portnumber",
-	"user" : "username",
-	"password" : "password"
-    }
-
-The host and port parameters are optional if your DBI does not need
-them to connect to a database running on the localhost.  For the most
-part, I would recommend that you fill them in.
-
-The locations for finding these JSON files is currently hardcoded, but
-future development my make it more dynamic.  Patches welcome!
+The scripts that communicate to the server via the DBI module need to
+have the PG database environment variables setup properly.  If you can
+connect to the database you want simply by typing psql at the command
+line, then you are good to go.  If not, you need to read this:
+http://www.postgresql.org/docs/9.2/static/libpq-envars.html and set
+your environment up appropriately.

@@ -22,23 +22,11 @@ use warnings;
 
 use DBI;
 use Spreadsheet::WriteExcel;
-use JSONPrefs;
 
-my $egdbi = JSONPrefs->load($ENV{'HOME'} . "/myprefs.d/egdbi.json");
 
 my $xlsFile = $ARGV[0] || 'parameters.xls';
 
-my $dsn = "dbi:Pg:database=" . $egdbi->database;
-
-if ($egdbi->host) {
-    $dsn .= ";host=" . $egdbi->host;
-}
-
-if ($egdbi->port) {
-    $dsn .= ";port=" . $egdbi->port;
-}
-
-my $dbh = DBI->connect($dsn,$egdbi->user,$egdbi->password);
+my $dbh = DBI->connect('DBI:Pg:');
 
 if ($dbh) {
     my $wb = Spreadsheet::WriteExcel->new($xlsFile);

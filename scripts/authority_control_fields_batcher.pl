@@ -47,7 +47,6 @@
 use strict;
 use warnings;
 use DBI;
-use JSONPrefs;
 use Getopt::Long;
 
 my $batch_size = 10000;
@@ -56,19 +55,7 @@ my $lower_bound = 0;
 my $result = GetOptions("lower-bound=i" => \$lower_bound,
                         "batch-size=i" => \$batch_size);
 
-my $egdbi = JSONPrefs->load($ENV{'HOME'} . "/myprefs.d/egdbi.json");
-
-my $dsn = "dbi:Pg:database=" . $egdbi->database;
-
-if ($egdbi->host) {
-    $dsn .= ";host=" . $egdbi->host;
-}
-
-if ($egdbi->port) {
-    $dsn .= ";port=" . $egdbi->port;
-}
-
-my $dbh = DBI->connect($dsn,$egdbi->user,$egdbi->password);
+my $dbh = DBI->connect('DBI:Pg:');
 
 my $q = <<END_OF_Q;
 SELECT id
