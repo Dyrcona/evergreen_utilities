@@ -62,7 +62,10 @@ foreach my $file (sort @files) {
             my $start = time();
             system("psql -veg_version=NULL -f $script");
             my $end = time() - $start;
-            print("$end seconds elapsed\n") if ($time);
+            if ($time) {
+                print '*' x 72 . "\n";
+                print("$end seconds elapsed\n");
+            }
         }
     }
 }
