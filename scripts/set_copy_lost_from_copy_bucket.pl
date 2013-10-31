@@ -50,7 +50,6 @@ die "Checkauth!" unless $editor->checkauth();
 # Now, we get the bucket id(s) from the command line!
 while (my $bucket_id = shift @ARGV) {
     print("Started $bucket_id\n");
-    my $holds = [];
     my $bucket = $apputils->simplereq(
         'open-ils.actor',
         'open-ils.actor.container.flesh',
