@@ -14,9 +14,9 @@
 # GNU General Public License for more details.
 # ---------------------------------------------------------------
 
-# This script set copies and cirulations to lost that are found in copy
-# buckets. It takes the copy bucket id #s on the command line. It will
-# then set all copies to lost that are in the buckets.
+# This script sets copies and cirulations to lost that are found in
+# copy buckets. It takes the copy bucket id #s on the command line. It
+# will then set all copies to lost that are in the buckets.
 #
 # It does NOT empty the copies from the bucket.
 
