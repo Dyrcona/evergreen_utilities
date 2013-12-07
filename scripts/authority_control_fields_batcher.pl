@@ -27,7 +27,7 @@
 
 # You can specify a lower bound.  This is an integer value that the
 # bib retrieval will start at, so any batches will start at biblio
-# recorc entries with an id greater than this value.  You specify this
+# record entries with an id greater than this value.  You specify this
 # with the --lower-bound (-l) option:
 #
 # authority_control_fields_batcher.pl --lower-bound 1380695
