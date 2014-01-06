@@ -82,7 +82,7 @@ browse_ingest(@blist);
 
 # We loop until we have processed all of the batches stored in @lol:
 while ($count < $lists) {
-    if (scalar(@lol) &amp;&amp; scalar(@running) < MAXCHILD) {
+    if (scalar(@lol) && scalar(@running) < MAXCHILD) {
         # Reuse $records for the lulz.
         $records = shift(@lol);
         reingest($records);
