@@ -112,7 +112,7 @@ sub reingest {
             if ($sth->execute($_)) {
                 my $crap = $sth->fetchall_arrayref();
             } else {
-                die ("Select statement failed for record $_");
+                warn ("Select statement failed for record $_");
             }
         }
         $dbh->disconnect();
@@ -127,7 +127,7 @@ sub browse_ingest {
     my @list = @_;
     my $pid = fork();
     if (!defined($pid)) {
-        die "faild to spawn child";
+        die "failed to spawn child";
     } elsif ($pid > 0) {
         # Add our browser to the list of running children.
         push(@running, $pid);
@@ -141,7 +141,7 @@ sub browse_ingest {
             if ($sth->execute($_)) {
                 my $crap = $sth->fetchall_arrayref();
             } else {
-                die ("Browse ingest failed for record $_");
+                warn ("Browse ingest failed for record $_");
             }
         }
         $dbh->disconnect();
