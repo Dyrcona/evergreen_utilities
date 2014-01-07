@@ -51,7 +51,7 @@ my @blist = ();
 #
 # 1) configure them
 #
-# 2) edit the DBI->connec() calls in this program so that it can
+# 2) edit the DBI->connect() calls in this program so that it can
 # connect to your database.
 my $dbh = DBI->connect('DBI:Pg:');
 
