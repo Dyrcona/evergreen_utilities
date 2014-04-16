@@ -85,7 +85,7 @@ if ($count) {
 
 sub print_it {
     my ($start, $end) = @_;
-    print("/openils/bin/authority_authority_linker.pl ");
+    print("/openils/bin/authority_authority_linker.pl --configuration=/openils/conf/opensrf_core.xml ");
     if ($start == $end) {
         printf("--record=%d\n", $start);
     } else {
