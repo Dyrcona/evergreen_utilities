@@ -32,9 +32,8 @@ use constant {
 my $q = <<END_OF_Q;
 SELECT id
 FROM biblio.record_entry
-WHERE deleted = 'f'
-AND id > 0
-ORDER BY id ASC
+WHERE id > 0
+ORDER BY id DESC
 END_OF_Q
 
 # Stuffs needed for looping, tracking how many lists of records we
@@ -109,11 +108,22 @@ sub reingest {
     } elsif ($pid == 0) {
         my $dbh = DBI->connect('DBI:Pg:');
         my $sth = $dbh->prepare("SELECT metabib.reingest_metabib_field_entries(?, FALSE, TRUE, FALSE)");
+        my $sth2 = $dbh->prepare(<<END_OF_INGEST
+SELECT metabib.reingest_record_attributes(id, NULL::TEXT[], marc, deleted)
+FROM biblio.record_entry
+WHERE id = ?
+END_OF_INGEST
+);
         foreach (@$list) {
+            if ($sth2->execute($_)) {
+                my $crap = $sth2->fetchall_arrayref();
+            } else {
+                warn ("metabib.reingest_record_attributes failed for record $_");
+            }
             if ($sth->execute($_)) {
                 my $crap = $sth->fetchall_arrayref();
             } else {
-                warn ("Select statement failed for record $_");
+                warn ("metabib.reingest_metabib_field_entries failed for record $_");
             }
         }
         $dbh->disconnect();
