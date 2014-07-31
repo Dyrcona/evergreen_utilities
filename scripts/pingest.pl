@@ -109,7 +109,7 @@ sub reingest {
         my $dbh = DBI->connect('DBI:Pg:');
         my $sth = $dbh->prepare("SELECT metabib.reingest_metabib_field_entries(?, FALSE, TRUE, FALSE)");
         my $sth2 = $dbh->prepare(<<END_OF_INGEST
-SELECT metabib.reingest_record_attributes(id, NULL::TEXT[], marc, deleted)
+SELECT metabib.reingest_record_attributes(id, NULL::TEXT[], marc)
 FROM biblio.record_entry
 WHERE id = ?
 END_OF_INGEST
