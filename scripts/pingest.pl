@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # ---------------------------------------------------------------
-# Copyright © 2013 Merrimack Valley Library Consortium
+# Copyright © 2013,2014 Merrimack Valley Library Consortium
 # Jason Stephenson <jstephenson@mvlc.org>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -13,7 +13,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 # ---------------------------------------------------------------
-
+# TODO: Document with POD.
 # This guy parallelizes a reingest.
 use strict;
 use warnings;
@@ -27,6 +27,33 @@ use constant {
     BATCHSIZE => 10000,
     MAXCHILD => 8
 };
+
+# Globals for the command line options:
+my $do_browse = 1; # Do the browse reingest.
+my $do_attrs = 1; # Do the record attributes reingest.
+my $do_search = 1; # Do the search reingest.
+my $do_facets = 1; # Do the facets reingest.
+
+# Command line options to skip different reingests. In this case, we
+# use the '-' to indicate a minus or a no, so to
+# skip browse reingest: -browse or -b
+# skip attribute reingest: -attributes or -a
+# skip search reingest: -search or -s
+# skip facet reingest: -facets or -f
+foreach (@ARGV) {
+    if (/^-b(?:rowse)?$/) {
+        $do_browse = 0;
+    } elsif (/^-a(?:ttr(?:ibute)?s?)?$/) {
+        $do_attrs = 0;
+    } elsif (/^-s(?:earch)?$/) {
+        $do_search = 0;
+    } elsif (/^-f(?:acets?)?$/) {
+        $do_facets = 0;
+    } else {
+        # TODO: Add usage() function to report allowed options.
+        die ("Unrecognized option: $_");
+    }
+}
 
 # "Gimme the keys!  I'll drive!"
 my $q = <<END_OF_Q;
@@ -78,14 +105,15 @@ $count = 0;
 my @running = ();
 
 # We start the browse-only ingest before starting the other ingests.
-browse_ingest(@blist);
+browse_ingest(@blist) if ($do_browse);
 
 # We loop until we have processed all of the batches stored in @lol:
 while ($count < $lists) {
     if (scalar(@lol) && scalar(@running) < MAXCHILD) {
         # Reuse $records for the lulz.
         $records = shift(@lol);
-        reingest($records);
+        reingest_attributes($records) if ($do_attrs);
+        reingest_field_entries($records) if ($do_search || $do_facets);
     } else {
         my $pid = wait();
         if (grep {$_ == $pid} @running) {
@@ -96,9 +124,9 @@ while ($count < $lists) {
     }
 }
 
-# Fork a child process to make the database calls on a list of
+# Fork a child process to reingest metabib field entries on a list of
 # records.
-sub reingest {
+sub reingest_field_entries {
     my $list = shift;
     my $pid = fork();
     if (!defined($pid)) {
@@ -107,23 +135,45 @@ sub reingest {
         push(@running, $pid);
     } elsif ($pid == 0) {
         my $dbh = DBI->connect('DBI:Pg:');
-        my $sth = $dbh->prepare("SELECT metabib.reingest_metabib_field_entries(?, FALSE, TRUE, FALSE)");
-        my $sth2 = $dbh->prepare(<<END_OF_INGEST
+        my $sth = $dbh->prepare("SELECT metabib.reingest_metabib_field_entries(?, ?, TRUE, ?)");
+        # Because reingest uses "skip" options we invert the logic of do variables.
+        $sth->bind_param(2, ($do_facets) ? 0 : 1);
+        $sth->bind_param(3, ($do_search) ? 0 : 1);
+        foreach (@$list) {
+            $sth->bind_param(1, $_);
+            if ($sth->execute()) {
+                my $crap = $sth->fetchall_arrayref();
+            } else {
+                warn ("metabib.reingest_metabib_field_entries failed for record $_");
+            }
+        }
+        $dbh->disconnect();
+        exit(0);
+    }
+}
+
+# Fork a child process to reingest record attributes.
+sub reingest_attributes {
+    my $list = shift;
+    my $pid = fork();
+    if (!defined($pid)) {
+        die "Failed to spawn a child";
+    } elsif ($pid > 0) {
+        push(@running, $pid);
+    } elsif ($pid == 0) {
+        my $dbh = DBI->connect('DBI:Pg:');
+        my $sth = $dbh->prepare(<<END_OF_INGEST
 SELECT metabib.reingest_record_attributes(id, NULL::TEXT[], marc)
 FROM biblio.record_entry
 WHERE id = ?
 END_OF_INGEST
-);
+                             );
         foreach (@$list) {
-            if ($sth2->execute($_)) {
-                my $crap = $sth2->fetchall_arrayref();
-            } else {
-                warn ("metabib.reingest_record_attributes failed for record $_");
-            }
-            if ($sth->execute($_)) {
+            $sth->bind_param(1, $_);
+            if ($sth->execute()) {
                 my $crap = $sth->fetchall_arrayref();
             } else {
-                warn ("metabib.reingest_metabib_field_entries failed for record $_");
+                warn ("metabib.reingest_record_attributes failed for record $_");
             }
         }
         $dbh->disconnect();
