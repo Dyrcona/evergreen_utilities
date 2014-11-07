@@ -112,8 +112,11 @@ while ($count < $lists) {
     if (scalar(@lol) && scalar(@running) < MAXCHILD) {
         # Reuse $records for the lulz.
         $records = shift(@lol);
-        reingest_attributes($records) if ($do_attrs);
-        reingest_field_entries($records) if ($do_search || $do_facets);
+        if ($do_search || $do_facets || $do_attrs) {
+            reingest($records);
+        } else {
+            $count++;
+        }
     } else {
         my $pid = wait();
         if (grep {$_ == $pid} @running) {
@@ -121,63 +124,6 @@ while ($count < $lists) {
             $count++;
             print "$count of $lists processed\n";
         }
-    }
-}
-
-# Fork a child process to reingest metabib field entries on a list of
-# records.
-sub reingest_field_entries {
-    my $list = shift;
-    my $pid = fork();
-    if (!defined($pid)) {
-        die "Failed to spawn a child";
-    } elsif ($pid > 0) {
-        push(@running, $pid);
-    } elsif ($pid == 0) {
-        my $dbh = DBI->connect('DBI:Pg:');
-        my $sth = $dbh->prepare("SELECT metabib.reingest_metabib_field_entries(?, ?, TRUE, ?)");
-        # Because reingest uses "skip" options we invert the logic of do variables.
-        $sth->bind_param(2, ($do_facets) ? 0 : 1);
-        $sth->bind_param(3, ($do_search) ? 0 : 1);
-        foreach (@$list) {
-            $sth->bind_param(1, $_);
-            if ($sth->execute()) {
-                my $crap = $sth->fetchall_arrayref();
-            } else {
-                warn ("metabib.reingest_metabib_field_entries failed for record $_");
-            }
-        }
-        $dbh->disconnect();
-        exit(0);
-    }
-}
-
-# Fork a child process to reingest record attributes.
-sub reingest_attributes {
-    my $list = shift;
-    my $pid = fork();
-    if (!defined($pid)) {
-        die "Failed to spawn a child";
-    } elsif ($pid > 0) {
-        push(@running, $pid);
-    } elsif ($pid == 0) {
-        my $dbh = DBI->connect('DBI:Pg:');
-        my $sth = $dbh->prepare(<<END_OF_INGEST
-SELECT metabib.reingest_record_attributes(id, NULL::TEXT[], marc)
-FROM biblio.record_entry
-WHERE id = ?
-END_OF_INGEST
-                             );
-        foreach (@$list) {
-            $sth->bind_param(1, $_);
-            if ($sth->execute()) {
-                my $crap = $sth->fetchall_arrayref();
-            } else {
-                warn ("metabib.reingest_record_attributes failed for record $_");
-            }
-        }
-        $dbh->disconnect();
-        exit(0);
     }
 }
 
@@ -207,5 +153,62 @@ sub browse_ingest {
         }
         $dbh->disconnect();
         exit(0);
+    }
+}
+
+# Fork a child to do the other reingests:
+
+sub reingest {
+    my $list = shift;
+    my $pid = fork();
+    if (!defined($pid)) {
+        die "Failed to spawn a child";
+    } elsif ($pid > 0) {
+        push(@running, $pid);
+    } elsif ($pid == 0) {
+        my $dbh = DBI->connect('DBI:Pg:');
+        reingest_attributes($dbh, $list) if ($do_attrs);
+        reingest_field_entries($dbh, $list) if ($do_facets || $do_search);
+        $dbh->disconnect();
+        exit(0);
+    }
+}
+
+# Fork a child process to reingest metabib field entries on a list of
+# records.
+sub reingest_field_entries {
+    my $dbh = shift;
+    my $list = shift;
+    my $sth = $dbh->prepare("SELECT metabib.reingest_metabib_field_entries(?, ?, TRUE, ?)");
+    # Because reingest uses "skip" options we invert the logic of do variables.
+    $sth->bind_param(2, ($do_facets) ? 0 : 1);
+    $sth->bind_param(3, ($do_search) ? 0 : 1);
+    foreach (@$list) {
+        $sth->bind_param(1, $_);
+        if ($sth->execute()) {
+            my $crap = $sth->fetchall_arrayref();
+        } else {
+            warn ("metabib.reingest_metabib_field_entries failed for record $_");
+        }
+    }
+}
+
+# Fork a child process to reingest record attributes.
+sub reingest_attributes {
+    my $dbh = shift;
+    my $list = shift;
+    my $sth = $dbh->prepare(<<END_OF_INGEST
+SELECT metabib.reingest_record_attributes(id, NULL::TEXT[], marc)
+FROM biblio.record_entry
+WHERE id = ?
+END_OF_INGEST
+    );
+    foreach (@$list) {
+        $sth->bind_param(1, $_);
+        if ($sth->execute()) {
+            my $crap = $sth->fetchall_arrayref();
+        } else {
+            warn ("metabib.reingest_record_attributes failed for record $_");
+        }
     }
 }
