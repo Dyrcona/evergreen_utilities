@@ -30,7 +30,6 @@
 # does not rely on the JSONPrefs module.
 
 use strict;
-use feature 'switch';
 
 my $XXXX = 0;
 my $time = 0;
@@ -38,10 +37,12 @@ my $count = 0;
 my $src_dir = $ENV{HOME} . "/Evergreen/";
 
 foreach my $arg (@ARGV) {
-    given ($arg) {
-        when (/^-{1,2}X{1,4}$/) {$XXXX = 1;}
-        when (/^-{1,2}t(?:ime)?$/) {$time = 1;}
-        default {$src_dir = $arg;}
+    if ($arg =~ /^-{1,2}X{1,4}$/) {
+        $XXXX = 1;
+    } elsif ($arg =~ /^-{1,2}t(?:ime)?$/) {
+        $time = 1;
+    } else {
+        $src_dir = $arg;
     }
 }
 $src_dir .= "/Open-ILS/src/sql/Pg/upgrade/";
