@@ -174,8 +174,7 @@ sub reingest {
     }
 }
 
-# Fork a child process to reingest metabib field entries on a list of
-# records.
+# Reingest metabib field entries on a list of records.
 sub reingest_field_entries {
     my $dbh = shift;
     my $list = shift;
@@ -193,7 +192,7 @@ sub reingest_field_entries {
     }
 }
 
-# Fork a child process to reingest record attributes.
+# Reingest record attributes on a list of records.
 sub reingest_attributes {
     my $dbh = shift;
     my $list = shift;
