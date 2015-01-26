@@ -21,15 +21,15 @@ use strict;
 use warnings;
 
 use DBI;
-use Spreadsheet::WriteExcel;
+use Excel::Writer::XLSX;
 
 
-my $xlsFile = $ARGV[0] || 'parameters.xls';
+my $xlsFile = $ARGV[0] || 'parameters.xlsx';
 
 my $dbh = DBI->connect('DBI:Pg:');
 
 if ($dbh) {
-    my $wb = Spreadsheet::WriteExcel->new($xlsFile);
+    my $wb = Excel::Writer::XLSX->new($xlsFile);
     if ($wb) {
         do_circ_modifier($dbh, $wb);
         do_copy_location($dbh, $wb);
