@@ -148,24 +148,68 @@ EOQ
 sub do_hold_matrix_matchpoint {
     my ($dbh, $wb) = @_;
 
-    my $query =<<EOQ;
+    my $columns = ['id', 'circ_lib', 'usr_lib', 'pickup_lib', 'group',
+                   'circ_modifier', 'marc_type','marc_bib_level',
+                   'marc_vr_format', 'ref_flag', 'holdable'];
+
+    my $weights = get_hold_matrix_weights($dbh);
+
+    my $sth = $dbh->prepare(<<'EOQ'
 SELECT chmp.id, aou.shortname as circ_lib, uou.shortname as usr_lib,
 pou.shortname as pickup_lib, pgt.name as group, chmp.circ_modifier,
 chmp.marc_type, chmp.marc_bib_level, chmp.marc_vr_format, chmp.ref_flag,
 chmp.holdable
 FROM config.hold_matrix_matchpoint chmp
-left join actor.org_unit aou on chmp.item_circ_ou = aou.id
-left join actor.org_unit uou on chmp.user_home_ou = uou.id
-left join actor.org_unit pou on chmp.pickup_ou = pou.id
-left join permission.grp_tree pgt on chmp.usr_grp = pgt.id
+LEFT JOIN actor.org_unit aou on chmp.item_circ_ou = aou.id
+LEFT JOIN actor.org_unit uou on chmp.user_home_ou = uou.id
+LEFT JOIN actor.org_unit pou on chmp.pickup_ou = pou.id
+LEFT JOIN permission.grp_tree pgt on chmp.usr_grp = pgt.id
+LEFT JOIN permission.grp_ancestors_distance(1) rpgad ON chmp.requestor_grp = rpgad.id
+LEFT JOIN permission.grp_ancestors_distance(1) upgad ON chmp.usr_grp = upgad.id
+LEFT JOIN actor.org_unit_ancestors_distance(1) puoua ON chmp.pickup_ou = puoua.id
+LEFT JOIN actor.org_unit_ancestors_distance(1) rqoua ON chmp.request_ou = rqoua.id
+LEFT JOIN actor.org_unit_ancestors_distance(1) cnoua ON chmp.item_owning_ou = cnoua.id
+LEFT JOIN actor.org_unit_ancestors_distance(1) iooua ON chmp.item_circ_ou = iooua.id
+LEFT JOIN actor.org_unit_ancestors_distance(1) uhoua ON chmp.user_home_ou = uhoua.id
 WHERE chmp.active = 't'
-ORDER BY coalesce(chmp.item_circ_ou, 1)
+ORDER BY
+CASE WHEN rpgad.distance    IS NOT NULL THEN 2^(2.0*$1 - (rpgad.distance/4)) ELSE 0.0 END +
+CASE WHEN upgad.distance    IS NOT NULL THEN 2^(2.0*$2 - (upgad.distance/4)) ELSE 0.0 END +
+CASE WHEN puoua.distance    IS NOT NULL THEN 2^(2.0*$3 - (puoua.distance/4)) ELSE 0.0 END +
+CASE WHEN rqoua.distance    IS NOT NULL THEN 2^(2.0*$4 - (rqoua.distance/4)) ELSE 0.0 END +
+CASE WHEN cnoua.distance    IS NOT NULL THEN 2^(2.0*$5 - (cnoua.distance/4)) ELSE 0.0 END +
+CASE WHEN iooua.distance    IS NOT NULL THEN 2^(2.0*$6 - (iooua.distance/4)) ELSE 0.0 END +
+CASE WHEN uhoua.distance    IS NOT NULL THEN 2^(2.0*$7 - (uhoua.distance/4)) ELSE 0.0 END +
+CASE WHEN chmp.juvenile_flag   IS NOT NULL THEN 4^$8 ELSE 0.0 END +
+CASE WHEN chmp.circ_modifier   IS NOT NULL THEN 4^$9 ELSE 0.0 END +
+CASE WHEN chmp.marc_type       IS NOT NULL THEN 4^$10 ELSE 0.0 END +
+CASE WHEN chmp.marc_form       IS NOT NULL THEN 4^$11 ELSE 0.0 END +
+CASE WHEN chmp.marc_vr_format  IS NOT NULL THEN 4^$12 ELSE 0.0 END +
+CASE WHEN chmp.ref_flag        IS NOT NULL THEN 4^$13 ELSE 0.0 END +
+CASE WHEN chmp.item_age            IS NOT NULL THEN 4^$14 - 86400/EXTRACT(EPOCH FROM chmp.item_age) ELSE 0.0 END DESC,
+chmp.id
 EOQ
+    );
 
-    my $columns = ['id', 'circ_lib', 'usr_lib', 'pickup_lib', 'group',
-                   'circ_modifier', 'marc_type','marc_bib_level',
-                   'marc_vr_format', 'ref_flag', 'holdable'];
-    my $results = $dbh->selectall_arrayref($query, { Slice => {}});
+    $sth->bind_param(1, $weights->{requestor_grp});
+    $sth->bind_param(2, $weights->{usr_grp});
+    $sth->bind_param(3, $weights->{pickup_ou});
+    $sth->bind_param(4, $weights->{request_ou});
+    $sth->bind_param(5, $weights->{item_owning_ou});
+    $sth->bind_param(6, $weights->{item_circ_ou});
+    $sth->bind_param(7, $weights->{user_home_ou});
+    $sth->bind_param(8, $weights->{juvenile_flag});
+    $sth->bind_param(9, $weights->{circ_modifier});
+    $sth->bind_param(10, $weights->{marc_type});
+    $sth->bind_param(11, $weights->{marc_form});
+    $sth->bind_param(12, $weights->{marc_vr_format});
+    $sth->bind_param(13, $weights->{ref_flag});
+    $sth->bind_param(14, $weights->{item_age});
+
+    unless ($sth->execute()) {
+        die("do_hold_matrix_matchpoint");
+    }
+    my $results = $sth->fetchall_arrayref({});
     my $ws = $wb->add_worksheet('hold_matrix_matchpoint');
     write_headers($ws, $columns, $wb->add_format(bold => 1));
     write_rows($ws, $columns, $results);
@@ -287,6 +331,47 @@ WEIGHTS
         $weights->{is_renewal} = 7.0;
         $weights->{usr_age_lower_bound} = 0.0;
         $weights->{usr_age_upper_bound} = 0.0;
+        $weights->{item_age} = 0.0;
+    }
+
+    return $weights;
+}
+
+sub get_hold_matrix_weights {
+    my $dbh = shift;
+
+    my $weights;
+
+    my $sth = $dbh->prepare(<<WEIGHTS
+select cw.*
+from config.weight_assoc wa
+join config.hold_matrix_weights cw on cw.id = wa.hold_weights
+where wa.org_unit = 1
+limit 1
+WEIGHTS
+    );
+
+    if ($sth->execute()) {
+        $weights = $sth->fetchrow_hashref();
+    }
+
+    # Just in case we don't have any weights defined.
+    unless ($weights) {
+        $weights = {};
+        $weights->{usr_grp} = 7.0;
+        $weights->{requestor_grp} = 8.0;
+        $weights->{request_ou} = 5.0;
+        $weights->{pickup_ou} = 5.0;
+        $weights->{circ_modifier} = 4.0;
+        $weights->{marc_type} = 3.0;
+        $weights->{marc_form} = 2.0;
+        $weights->{marc_bib_level} = 1.0;
+        $weights->{marc_vr_format} = 1.0;
+        $weights->{item_circ_ou} = 5.0;
+        $weights->{item_owning_ou} = 5.0;
+        $weights->{user_home_ou} = 5.0;
+        $weights->{ref_flag} = 0.0;
+        $weights->{juvenile_flag} = 4.0;
         $weights->{item_age} = 0.0;
     }
 
