@@ -66,7 +66,7 @@ sub do_circ_matrix_matchpoint {
     my ($dbh, $wb) = @_;
 
     my $columns = ['id', 'shortname', 'copy_lib', 'usr_lib', 'group',
-                   'circ_modifier', 'marc_type','marc_bib_level',
+                   'circ_modifier', 'marc_type', 'marc_form', 'marc_bib_level',
                    'marc_vr_format', 'ref_flag', 'circulate', 'duration_rule',
                    'recurring_fine_rule', 'max_fine_rule', 'renewals',
                    'grace_period'];
@@ -75,7 +75,7 @@ sub do_circ_matrix_matchpoint {
 
     my $sth = $dbh->prepare(<<'EOQ'
 SELECT ccmp.id, aou.shortname, pgt.name as group, ccmp.circ_modifier,
-ccmp.marc_type, ccmp.marc_bib_level, ccmp.marc_vr_format,
+ccmp.marc_type, ccmp.marc_form, ccmp.marc_bib_level, ccmp.marc_vr_format,
 cou.shortname as copy_lib, uou.shortname as usr_lib, ccmp.ref_flag,
 ccmp.circulate, crcd.normal as duration_rule, crrf.normal as recurring_fine_rule,
 crmf.amount as max_fine_rule, coalesce(ccmp.renewals, crcd.max_renewals) as renewals,
@@ -149,7 +149,7 @@ sub do_hold_matrix_matchpoint {
     my ($dbh, $wb) = @_;
 
     my $columns = ['id', 'circ_lib', 'usr_lib', 'pickup_lib', 'group',
-                   'circ_modifier', 'marc_type','marc_bib_level',
+                   'circ_modifier', 'marc_type', 'marc_form', 'marc_bib_level',
                    'marc_vr_format', 'ref_flag', 'holdable'];
 
     my $weights = get_hold_matrix_weights($dbh);
@@ -157,8 +157,8 @@ sub do_hold_matrix_matchpoint {
     my $sth = $dbh->prepare(<<'EOQ'
 SELECT chmp.id, aou.shortname as circ_lib, uou.shortname as usr_lib,
 pou.shortname as pickup_lib, pgt.name as group, chmp.circ_modifier,
-chmp.marc_type, chmp.marc_bib_level, chmp.marc_vr_format, chmp.ref_flag,
-chmp.holdable
+chmp.marc_type, chmp.marc_form, chmp.marc_bib_level, chmp.marc_vr_format,
+chmp.ref_flag, chmp.holdable
 FROM config.hold_matrix_matchpoint chmp
 LEFT JOIN actor.org_unit aou on chmp.item_circ_ou = aou.id
 LEFT JOIN actor.org_unit uou on chmp.user_home_ou = uou.id
