@@ -148,21 +148,24 @@ EOQ
 sub do_hold_matrix_matchpoint {
     my ($dbh, $wb) = @_;
 
-    my $columns = ['id', 'circ_lib', 'usr_lib', 'pickup_lib', 'group',
-                   'circ_modifier', 'marc_type', 'marc_form', 'marc_bib_level',
+    my $columns = ['id', 'circ_lib', 'request_lib', 'usr_lib', 'pickup_lib', 'requestor_group',
+                   'patron_group', 'circ_modifier', 'marc_type', 'marc_form', 'marc_bib_level',
                    'marc_vr_format', 'ref_flag', 'holdable'];
 
     my $weights = get_hold_matrix_weights($dbh);
 
     my $sth = $dbh->prepare(<<'EOQ'
-SELECT chmp.id, aou.shortname as circ_lib, uou.shortname as usr_lib,
-pou.shortname as pickup_lib, pgt.name as group, chmp.circ_modifier,
+SELECT chmp.id, aou.shortname as circ_lib, rou.shortname as request_lib, uou.shortname as usr_lib,
+pou.shortname as pickup_lib, rpgt.name as requestor_group, pgt.name as patron_group,
+chmp.circ_modifier,
 chmp.marc_type, chmp.marc_form, chmp.marc_bib_level, chmp.marc_vr_format,
 chmp.ref_flag, chmp.holdable
 FROM config.hold_matrix_matchpoint chmp
 LEFT JOIN actor.org_unit aou on chmp.item_circ_ou = aou.id
+LEFT JOIN actor.org_unit rou on chmp.request_ou = rou.id
 LEFT JOIN actor.org_unit uou on chmp.user_home_ou = uou.id
 LEFT JOIN actor.org_unit pou on chmp.pickup_ou = pou.id
+LEFT JOIN permission.grp_tree rpgt on chmp.requestor_grp = rpgt.id
 LEFT JOIN permission.grp_tree pgt on chmp.usr_grp = pgt.id
 LEFT JOIN permission.grp_ancestors_distance(1) rpgad ON chmp.requestor_grp = rpgad.id
 LEFT JOIN permission.grp_ancestors_distance(1) upgad ON chmp.usr_grp = upgad.id
