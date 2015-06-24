@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # ---------------------------------------------------------------
-# Copyright © 2012, 2013 Merrimack Valley Library Consortium
+# Copyright © 2012, 2013, 2015 Merrimack Valley Library Consortium
 # Jason Stephenson <jstephenson@mvlc.org>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -22,7 +22,11 @@ use warnings;
 
 use DBI;
 use Excel::Writer::XLSX;
+use List::MoreUtils qw/firstidx/;
 
+my $inactive_format; # A global format for inactive rows in circ and
+                     # hold matrix matchpoint sheets.
+my $bold_format; # Bold for the headers.
 
 my $xlsFile = $ARGV[0] || 'parameters.xlsx';
 
@@ -31,6 +35,8 @@ my $dbh = DBI->connect('DBI:Pg:');
 if ($dbh) {
     my $wb = Excel::Writer::XLSX->new($xlsFile);
     if ($wb) {
+        $inactive_format = $wb->add_format(bg_color => 'gray');
+        $bold_format = $wb->add_format(bold => 1);
         do_circ_modifier($dbh, $wb);
         do_copy_location($dbh, $wb);
         do_circ_matrix_matchpoint($dbh, $wb);
@@ -58,14 +64,14 @@ EOQ
     my $columns = ['code', 'description', 'sip2_media_type', 'magnetic_media'];
     my $results = $dbh->selectall_arrayref($query, { Slice => {}});
     my $ws = $wb->add_worksheet('circ_modifier');
-    write_headers($ws, $columns, $wb->add_format(bold => 1));
+    write_headers($ws, $columns, );
     write_rows($ws, $columns, $results);
 }
 
 sub do_circ_matrix_matchpoint {
     my ($dbh, $wb) = @_;
 
-    my $columns = ['id', 'shortname', 'copy_lib', 'usr_lib', 'group',
+    my $columns = ['id', 'active', 'shortname', 'copy_lib', 'usr_lib', 'group',
                    'circ_modifier', 'marc_type', 'marc_form', 'marc_bib_level',
                    'marc_vr_format', 'ref_flag', 'circulate', 'duration_rule',
                    'recurring_fine_rule', 'max_fine_rule', 'renewals',
@@ -74,7 +80,7 @@ sub do_circ_matrix_matchpoint {
     my $weights = get_circ_matrix_weights($dbh);
 
     my $sth = $dbh->prepare(<<'EOQ'
-SELECT ccmp.id, aou.shortname, pgt.name as group, ccmp.circ_modifier,
+SELECT ccmp.id, ccmp.active, aou.shortname, pgt.name as group, ccmp.circ_modifier,
 ccmp.marc_type, ccmp.marc_form, ccmp.marc_bib_level, ccmp.marc_vr_format,
 cou.shortname as copy_lib, uou.shortname as usr_lib, ccmp.ref_flag,
 ccmp.circulate, crcd.normal as duration_rule, crrf.normal as recurring_fine_rule,
@@ -95,7 +101,6 @@ LEFT JOIN actor.org_unit_descendants_distance(1) oud ON ccmp.org_unit = oud.id
 LEFT JOIN actor.org_unit_descendants_distance(1) ccd ON ccmp.copy_circ_lib = ccd.id
 LEFT JOIN actor.org_unit_descendants_distance(1) cod ON ccmp.copy_owning_lib = cod.id
 LEFT JOIN actor.org_unit_descendants_distance(1) uhd ON ccmp.user_home_ou = uhd.id
-WHERE ccmp.active = 't'
 ORDER BY
 CASE WHEN ccmp.org_unit IS NOT NULL THEN 2^(2.0*$17 - ((4-oud.distance)/4)) ELSE 0.0 END +
 CASE WHEN ccmp.grp IS NOT NULL THEN 2^(2.0*$13 - ((4-pgdd.distance)/4)) ELSE 0.0 END +
@@ -141,23 +146,23 @@ EOQ
     }
     my $results = $sth->fetchall_arrayref({});
     my $ws = $wb->add_worksheet('circ_matrix_matchpoint');
-    write_headers($ws, $columns, $wb->add_format(bold => 1));
+    write_headers($ws, $columns, $bold_format);
     write_rows($ws, $columns, $results);
 }
 
 sub do_hold_matrix_matchpoint {
     my ($dbh, $wb) = @_;
 
-    my $columns = ['id', 'circ_lib', 'request_lib', 'usr_lib', 'pickup_lib', 'requestor_group',
-                   'patron_group', 'circ_modifier', 'marc_type', 'marc_form', 'marc_bib_level',
-                   'marc_vr_format', 'ref_flag', 'holdable'];
+    my $columns = ['id', 'active', 'circ_lib', 'request_lib', 'usr_lib', 'pickup_lib',
+                   'requestor_group', 'patron_group', 'circ_modifier', 'marc_type', 'marc_form',
+                   'marc_bib_level','marc_vr_format', 'ref_flag', 'holdable'];
 
     my $weights = get_hold_matrix_weights($dbh);
 
     my $sth = $dbh->prepare(<<'EOQ'
-SELECT chmp.id, aou.shortname as circ_lib, rou.shortname as request_lib, uou.shortname as usr_lib,
-pou.shortname as pickup_lib, rpgt.name as requestor_group, pgt.name as patron_group,
-chmp.circ_modifier,
+SELECT chmp.id, chmp.active, aou.shortname as circ_lib, rou.shortname as request_lib,
+uou.shortname as usr_lib, pou.shortname as pickup_lib, rpgt.name as requestor_group,
+pgt.name as patron_group,chmp.circ_modifier,
 chmp.marc_type, chmp.marc_form, chmp.marc_bib_level, chmp.marc_vr_format,
 chmp.ref_flag, chmp.holdable
 FROM config.hold_matrix_matchpoint chmp
@@ -174,7 +179,6 @@ LEFT JOIN actor.org_unit_ancestors_distance(1) rqoua ON chmp.request_ou = rqoua.
 LEFT JOIN actor.org_unit_ancestors_distance(1) cnoua ON chmp.item_owning_ou = cnoua.id
 LEFT JOIN actor.org_unit_ancestors_distance(1) iooua ON chmp.item_circ_ou = iooua.id
 LEFT JOIN actor.org_unit_ancestors_distance(1) uhoua ON chmp.user_home_ou = uhoua.id
-WHERE chmp.active = 't'
 ORDER BY
 CASE WHEN rpgad.distance    IS NOT NULL THEN 2^(2.0*$1 - (rpgad.distance/4)) ELSE 0.0 END +
 CASE WHEN upgad.distance    IS NOT NULL THEN 2^(2.0*$2 - (upgad.distance/4)) ELSE 0.0 END +
@@ -214,7 +218,7 @@ EOQ
     }
     my $results = $sth->fetchall_arrayref({});
     my $ws = $wb->add_worksheet('hold_matrix_matchpoint');
-    write_headers($ws, $columns, $wb->add_format(bold => 1));
+    write_headers($ws, $columns, $bold_format);
     write_rows($ws, $columns, $results);
 }
 
@@ -234,7 +238,7 @@ EOQ
     my $columns = ['shortname', 'group', 'label', 'block_list', 'threshold'];
     my $results = $dbh->selectall_arrayref($query, { Slice => {}});
     my $ws = $wb->add_worksheet('standing_penalty_thresholds');
-    write_headers($ws, $columns, $wb->add_format(bold => 1));
+    write_headers($ws, $columns, $bold_format);
     write_rows($ws, $columns, $results);
 }
 
@@ -256,7 +260,7 @@ EOQ
                    'global', 'fallthrough'];
     my $results = $dbh->selectall_arrayref($query, {Slice =>{}});
     my $ws = $wb->add_worksheet('items_out');
-    write_headers($ws, $columns, $wb->add_format(bold => 1));
+    write_headers($ws, $columns, $bold_format);
     write_rows($ws, $columns, $results);
 }
 
@@ -276,7 +280,7 @@ EOQ
                    'opac_visible', 'circulate'];
     my $results = $dbh->selectall_arrayref($query, {Slice =>{}});
     my $ws = $wb->add_worksheet('copy_locations');
-    write_headers($ws, $columns, $wb->add_format(bold => 1));
+    write_headers($ws, $columns, $bold_format);
     write_rows($ws, $columns, $results);
 }
 
@@ -288,11 +292,19 @@ sub write_headers {
 sub write_rows {
     my ($ws, $columns, $results) = @_;
     my $row = 0;
+    my $active_idx = firstidx {$_ eq 'active'} @$columns;
     foreach my $result (@{$results}) {
         my $col = 0;
         $row++;
+        # determine if we need the inactive format.
+        my $format;
+        if ($active_idx > -1) {
+            if (is_false($result->{'active'})) {
+                $format = $inactive_format;
+            }
+        }
         foreach my $column (@{$columns}) {
-            $ws->write($row, $col++, $result->{$column});
+            $ws->write($row, $col++, $result->{$column}, $format);
         }
     }
 }
@@ -381,3 +393,16 @@ WEIGHTS
     return $weights;
 }
 
+# A helper function to determine if a field value is false.  Valid
+# values for false are 0, f, false, or no.  Valid values for true are
+# 1, t, true, or yes.  Returns 1 if the argument is false, 0 if it is
+# true, and undef if the value is invalid.
+sub is_false {
+    my $value = shift;
+    if (defined($value)) {
+        $value = lc($value);
+        return 0 if ($value eq "1" || $value eq "t" || $value eq "true" || $value eq "yes");
+        return 1 if ($value eq "0" || $value eq "f" || $value eq "false" || $value eq "no");
+    }
+    return undef;
+}
