@@ -64,7 +64,7 @@ EOQ
     my $columns = ['code', 'description', 'sip2_media_type', 'magnetic_media'];
     my $results = $dbh->selectall_arrayref($query, { Slice => {}});
     my $ws = $wb->add_worksheet('circ_modifier');
-    write_headers($ws, $columns, );
+    write_headers($ws, $columns, $bold_format);
     write_rows($ws, $columns, $results);
 }
 
