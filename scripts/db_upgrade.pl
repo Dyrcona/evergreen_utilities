@@ -58,6 +58,7 @@ foreach my $file (sort @files) {
         # 20130508: --XXXX expanded to include YYYY scripts as well.
         if (($vers ne 'XXXX' && $vers ne 'YYYY') || $XXXX) {
             $count++;
+            print "\n$file\n";
             print '-' x 72 . "\n";
             my $script = $src_dir . $file;
             my $start = time();
