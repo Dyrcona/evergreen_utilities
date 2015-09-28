@@ -35,12 +35,15 @@ my $XXXX = 0;
 my $time = 0;
 my $count = 0;
 my $src_dir = $ENV{HOME} . "/Evergreen/";
+my $mvlc = 0;
 
 foreach my $arg (@ARGV) {
     if ($arg =~ /^-{1,2}X{1,4}$/) {
         $XXXX = 1;
     } elsif ($arg =~ /^-{1,2}t(?:ime)?$/) {
         $time = 1;
+    } elsif ($arg =~ /^-{1,2}mvlc$/i) {
+        $mvlc = 1;
     } else {
         $src_dir = $arg;
     }
@@ -56,7 +59,8 @@ foreach my $file (sort @files) {
     my $vers = substr($file, 0, index($file, "."));
     if ($vers gt $eg_version) {
         # 20130508: --XXXX expanded to include YYYY scripts as well.
-        if (($vers ne 'XXXX' && $vers ne 'YYYY') || $XXXX) {
+        if ((($vers ne 'XXXX' && $vers ne 'YYYY') || $XXXX)
+                && (($vers ne 'MVLC') || $mvlc)) {
             $count++;
             print "\n$file\n";
             print '-' x 72 . "\n";
