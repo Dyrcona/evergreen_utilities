@@ -10,17 +10,17 @@ and absolutely no warranty of any kind whatsoever.  You use these at
 your own risk, and you assume full responsibility for whatever happens
 if you run these including but not limited to nuclear apocalypse.
 
-Several of these scripts use a custom JSONPrefs module in order to
+Several of the Perl scripts use a custom JSONPrefs module in order to
 load settings or login information for Evergreen.  This module is
 available at:
 
      http://git.mvlcstaff.org/?p=jason/JSONPrefs.git;a=summary
 
-The scripts generally look for these files in a myprefs.d subdirectory
-of the current user's home.  The most common such file is expected to
-be named evergreen.json and to contain a JSON object with fields
-containing login credentials for Evergreen.  Here is a sample of what
-that might look like:
+These scripts generally look for preferences files in a myprefs.d
+subdirectory of the current user's home.  The most common such file is
+expected to be named evergreen.json and to contain a JSON object with
+fields containing login credentials for Evergreen.  Here is a sample
+of what that might look like:
 
      {
           "username" : "eguser",
@@ -32,11 +32,13 @@ that might look like:
 You, of course, replace eguser, egpassword, and egworkstation with the
 credentials appropriate to your system.
 
-NOTE: I am working on eliminating the above requirements.
-
-The scripts that communicate to the server via the DBI module need to
-have the PG database environment variables setup properly.  If you can
-connect to the database you want simply by typing psql at the command
-line, then you are good to go.  If not, you need to read this:
+The Perl scripts that use the DBI module need to have the PG database
+environment variables setup properly.  If you can connect to the
+database you want simply by typing psql at the command line, then you
+are good to go.  If not, you need to read this:
 http://www.postgresql.org/docs/9.2/static/libpq-envars.html and set
 your environment up appropriately.
+
+The scripts in the sql subdirectory are SQL scripts that you can run
+however you need to.  Most of them take arguments of some kind, so
+read the scripts before running them to see what you need to do.
