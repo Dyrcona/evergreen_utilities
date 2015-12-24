@@ -172,21 +172,21 @@ LEFT JOIN actor.org_unit uou on chmp.user_home_ou = uou.id
 LEFT JOIN actor.org_unit pou on chmp.pickup_ou = pou.id
 LEFT JOIN permission.grp_tree rpgt on chmp.requestor_grp = rpgt.id
 LEFT JOIN permission.grp_tree pgt on chmp.usr_grp = pgt.id
-LEFT JOIN permission.grp_ancestors_distance(1) rpgad ON chmp.requestor_grp = rpgad.id
-LEFT JOIN permission.grp_ancestors_distance(1) upgad ON chmp.usr_grp = upgad.id
-LEFT JOIN actor.org_unit_ancestors_distance(1) puoua ON chmp.pickup_ou = puoua.id
-LEFT JOIN actor.org_unit_ancestors_distance(1) rqoua ON chmp.request_ou = rqoua.id
-LEFT JOIN actor.org_unit_ancestors_distance(1) cnoua ON chmp.item_owning_ou = cnoua.id
-LEFT JOIN actor.org_unit_ancestors_distance(1) iooua ON chmp.item_circ_ou = iooua.id
-LEFT JOIN actor.org_unit_ancestors_distance(1) uhoua ON chmp.user_home_ou = uhoua.id
+LEFT JOIN permission.grp_descendants_distance(1) rpgad ON chmp.requestor_grp = rpgad.id
+LEFT JOIN permission.grp_descendants_distance(1) upgad ON chmp.usr_grp = upgad.id
+LEFT JOIN actor.org_unit_descendants_distance(1) puoua ON chmp.pickup_ou = puoua.id
+LEFT JOIN actor.org_unit_descendants_distance(1) rqoua ON chmp.request_ou = rqoua.id
+LEFT JOIN actor.org_unit_descendants_distance(1) cnoua ON chmp.item_owning_ou = cnoua.id
+LEFT JOIN actor.org_unit_descendants_distance(1) iooua ON chmp.item_circ_ou = iooua.id
+LEFT JOIN actor.org_unit_descendants_distance(1) uhoua ON chmp.user_home_ou = uhoua.id
 ORDER BY
-CASE WHEN rpgad.distance    IS NOT NULL THEN 2^(2.0*$1 - (rpgad.distance/4)) ELSE 0.0 END +
-CASE WHEN upgad.distance    IS NOT NULL THEN 2^(2.0*$2 - (upgad.distance/4)) ELSE 0.0 END +
-CASE WHEN puoua.distance    IS NOT NULL THEN 2^(2.0*$3 - (puoua.distance/4)) ELSE 0.0 END +
-CASE WHEN rqoua.distance    IS NOT NULL THEN 2^(2.0*$4 - (rqoua.distance/4)) ELSE 0.0 END +
-CASE WHEN cnoua.distance    IS NOT NULL THEN 2^(2.0*$5 - (cnoua.distance/4)) ELSE 0.0 END +
-CASE WHEN iooua.distance    IS NOT NULL THEN 2^(2.0*$6 - (iooua.distance/4)) ELSE 0.0 END +
-CASE WHEN uhoua.distance    IS NOT NULL THEN 2^(2.0*$7 - (uhoua.distance/4)) ELSE 0.0 END +
+CASE WHEN rpgad.distance    IS NOT NULL THEN 2^(2.0*$1 - ((4 - rpgad.distance)/4)) ELSE 0.0 END +
+CASE WHEN upgad.distance    IS NOT NULL THEN 2^(2.0*$2 - ((4 - upgad.distance)/4)) ELSE 0.0 END +
+CASE WHEN puoua.distance    IS NOT NULL THEN 2^(2.0*$3 - ((4 - puoua.distance)/4)) ELSE 0.0 END +
+CASE WHEN rqoua.distance    IS NOT NULL THEN 2^(2.0*$4 - ((4 - rqoua.distance)/4)) ELSE 0.0 END +
+CASE WHEN cnoua.distance    IS NOT NULL THEN 2^(2.0*$5 - ((4 - cnoua.distance)/4)) ELSE 0.0 END +
+CASE WHEN iooua.distance    IS NOT NULL THEN 2^(2.0*$6 - ((4 - iooua.distance)/4)) ELSE 0.0 END +
+CASE WHEN uhoua.distance    IS NOT NULL THEN 2^(2.0*$7 - ((4 - uhoua.distance)/4)) ELSE 0.0 END +
 CASE WHEN chmp.juvenile_flag   IS NOT NULL THEN 4^$8 ELSE 0.0 END +
 CASE WHEN chmp.circ_modifier   IS NOT NULL THEN 4^$9 ELSE 0.0 END +
 CASE WHEN chmp.marc_type       IS NOT NULL THEN 4^$10 ELSE 0.0 END +
