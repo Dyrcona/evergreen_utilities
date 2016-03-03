@@ -87,11 +87,11 @@ HELP
 
 help() if $help;
 
-my $where = "WHERE id > 0";
+my $where = "WHERE deleted = 'f'";
 if ($start_id && $end_id) {
-    $where = "WHERE id BETWEEN $start_id AND $end_id";
+    $where .= " AND id BETWEEN $start_id AND $end_id";
 } elsif ($start_id) {
-    $where = "WHERE id >= $start_id";
+    $where .= " AND id >= $start_id";
 } elsif ($end_id) {
     $where .= " AND id <= $end_id";
 }
@@ -101,7 +101,7 @@ my $q = <<END_OF_Q;
 SELECT id
 FROM biblio.record_entry
 $where
-ORDER BY id DESC
+ORDER BY id ASC
 END_OF_Q
 
 # Stuffs needed for looping, tracking how many lists of records we
