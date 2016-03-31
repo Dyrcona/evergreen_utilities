@@ -14,7 +14,7 @@ Several of the Perl scripts use a custom JSONPrefs module in order to
 load settings or login information for Evergreen.  This module is
 available at:
 
-     http://git.mvlcstaff.org/?p=jason/JSONPrefs.git;a=summary
+     https://github.com/Dyrcona/JSONPrefs
 
 These scripts generally look for preferences files in a myprefs.d
 subdirectory of the current user's home.  The most common such file is
