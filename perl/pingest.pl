@@ -99,13 +99,15 @@ if ($opt_pipe && ($start_id || $end_id)) {
     help();
 }
 
-my $where = "WHERE deleted = 'f'";
+my $where;
 if ($start_id && $end_id) {
-    $where .= " AND id BETWEEN $start_id AND $end_id";
+    $where = "WHERE id BETWEEN $start_id AND $end_id";
 } elsif ($start_id) {
-    $where .= " AND id >= $start_id";
+    $where = "WHERE id >= $start_id";
 } elsif ($end_id) {
-    $where .= " AND id <= $end_id";
+    $where = "WHERE id <= $end_id";
+} else {
+    $where = "WHERE id > -1";
 }
 
 # "Gimme the keys!  I'll drive!"
