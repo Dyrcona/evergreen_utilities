@@ -50,14 +50,15 @@ foreach my $arg (@ARGV) {
 }
 $src_dir .= "/Open-ILS/src/sql/Pg/upgrade/";
 
-my $eg_version = get_eg_version();
+my $versions = get_eg_versions();
+my $min = $versions->[0];
 
 opendir my ($dh), $src_dir or die("Can't open $src_dir");
 my @files = readdir $dh;
 closedir($dh);
 foreach my $file (sort @files) {
     my $vers = substr($file, 0, index($file, "."));
-    if ($vers gt $eg_version) {
+    if ($vers gt $min && !grep {$vers eq $_} @$versions) {
         # 20130508: --XXXX expanded to include YYYY scripts as well.
         if ((($vers ne 'XXXX' && $vers ne 'YYYY') || $XXXX)
                 && (($vers ne 'MVLC') || $mvlc)) {
@@ -77,13 +78,13 @@ foreach my $file (sort @files) {
 }
 print '-' x 72 . "\n" if ($count);
 
-sub get_eg_version {
+sub get_eg_versions {
     use DBI;
     my $result;
     my $db = DBI->connect("DBI:Pg:");
 
     if ($db) {
-        $result = $db->selectrow_arrayref("select max(version) from config.upgrade_log")->[0];
+        $result = $db->selectcol_arrayref("select version from config.upgrade_log where version > '0949' order by version");
         $db->disconnect;
     } else {
         die("Failed to connect to database");
