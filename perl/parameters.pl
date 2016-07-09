@@ -2,6 +2,7 @@
 # ---------------------------------------------------------------
 # Copyright © 2012, 2013, 2015 Merrimack Valley Library Consortium
 # Jason Stephenson <jstephenson@mvlc.org>
+# Copyright © 2016 Jason Stephenson <jason@sigio.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,7 +15,7 @@
 # GNU General Public License for more details.
 # ---------------------------------------------------------------
 
-# Program creates a XLS workbook with several sheets to contain
+# Program creates a XLSX workbook with several sheets to contain
 # information about circulation and hold parameters.
 
 use strict;
@@ -71,31 +72,42 @@ EOQ
 sub do_circ_matrix_matchpoint {
     my ($dbh, $wb) = @_;
 
-    my $columns = ['id', 'active', 'shortname', 'copy_lib', 'usr_lib', 'group',
-                   'circ_modifier', 'marc_type', 'marc_form', 'marc_bib_level',
-                   'marc_vr_format', 'ref_flag', 'circulate', 'duration_rule',
-                   'recurring_fine_rule', 'max_fine_rule', 'renewals',
-                   'grace_period'];
+    my $columns = ['id', 'active', 'shortname', 'circ_lib',
+                   'owning_lib', 'usr_lib', 'group', 'circ_modifier',
+                   'copy_location', 'marc_type', 'marc_form',
+                   'marc_bib_level', 'marc_vr_format', 'ref_flag',
+                   'juvenile_flag', 'is_renewal', 'user_age_lower',
+                   'user_age_upper', 'item_age', 'circulate',
+                   'duration_rule', 'recurring_fine_rule',
+                   'max_fine_rule', 'hard_due_date', 'renewals',
+                   'grace_period', 'script_test',
+                   'total_copy_hold_ratio',
+                   'available_copy_hold_ratio'];
 
     my $weights = get_circ_matrix_weights($dbh);
 
     my $sth = $dbh->prepare(<<'EOQ'
 SELECT ccmp.id, ccmp.active, aou.shortname, pgt.name as group, ccmp.circ_modifier,
 ccmp.marc_type, ccmp.marc_form, ccmp.marc_bib_level, ccmp.marc_vr_format,
-cou.shortname as copy_lib, uou.shortname as usr_lib, ccmp.ref_flag,
+oou.shortname as owning_lib, cou.shortname as circ_lib, uou.shortname as usr_lib,
+ccmp.ref_flag, ccmp.juvenile_flag, ccmp.is_renewal, acpl.name as copy_location,
+ccmp.usr_age_lower_bound as user_age_lower, ccmp.usr_age_upper_bound as user_age_upper,
+ccmp.item_age, chdd.name as hard_due_date,
 ccmp.circulate, crcd.normal as duration_rule, crrf.normal as recurring_fine_rule,
 crmf.amount as max_fine_rule, coalesce(ccmp.renewals, crcd.max_renewals) as renewals,
 coalesce(ccmp.grace_period, crrf.grace_period) as grace_period,
-oou.shortname as owning_lib
+ccmp.script_test, ccmp.total_copy_hold_ratio, ccmp.available_copy_hold_ratio
 FROM config.circ_matrix_matchpoint ccmp
 LEFT JOIN actor.org_unit cou ON ccmp.copy_circ_lib = cou.id
 LEFT JOIN actor.org_unit uou ON ccmp.user_home_ou = uou.id
 LEFT JOIN actor.org_unit oou ON ccmp.copy_owning_lib = oou.id
+LEFT JOIN asset.copy_location acpl on ccmp.copy_location = acpl.id
 JOIN actor.org_unit aou ON ccmp.org_unit = aou.id
 JOIN permission.grp_tree pgt ON ccmp.grp = pgt.id
 LEFT JOIN config.rule_circ_duration crcd ON ccmp.duration_rule = crcd.id
 LEFT JOIN config.rule_recurring_fine crrf ON ccmp.recurring_fine_rule = crrf.id
 LEFT JOIN config.rule_max_fine crmf ON ccmp.max_fine_rule = crmf.id
+LEFT JOIN config.hard_due_date chdd ON ccmp.hard_due_date = chdd.id
 LEFT JOIN permission.grp_descendants_distance(1) pgdd ON ccmp.grp = pgdd.id
 LEFT JOIN actor.org_unit_descendants_distance(1) oud ON ccmp.org_unit = oud.id
 LEFT JOIN actor.org_unit_descendants_distance(1) ccd ON ccmp.copy_circ_lib = ccd.id
@@ -153,23 +165,33 @@ EOQ
 sub do_hold_matrix_matchpoint {
     my ($dbh, $wb) = @_;
 
-    my $columns = ['id', 'active', 'circ_lib', 'request_lib', 'usr_lib', 'pickup_lib',
-                   'requestor_group', 'patron_group', 'circ_modifier', 'marc_type', 'marc_form',
-                   'marc_bib_level','marc_vr_format', 'ref_flag', 'holdable'];
+    my $columns = ['id', 'active', 'strict', 'owning_lib', 'circ_lib',
+                   'request_lib', 'usr_lib', 'pickup_lib',
+                   'requestor_group', 'patron_group', 'circ_modifier',
+                   'marc_type', 'marc_form', 'marc_bib_level',
+                   'marc_vr_format', 'juvenile_flag', 'ref_flag',
+                   'item_age', 'holdable', 'distance_is_from_owner',
+                   'transit_range', 'max_holds',
+                   'include_frozen_holds', 'stop_blocked_user',
+                   'age_hold_protect_rule'];
 
     my $weights = get_hold_matrix_weights($dbh);
 
     my $sth = $dbh->prepare(<<'EOQ'
 SELECT chmp.id, chmp.active, aou.shortname as circ_lib, rou.shortname as request_lib,
 uou.shortname as usr_lib, pou.shortname as pickup_lib, rpgt.name as requestor_group,
-pgt.name as patron_group,chmp.circ_modifier,
+pgt.name as patron_group,chmp.circ_modifier, chmp.strict_ou_match as strict,
 chmp.marc_type, chmp.marc_form, chmp.marc_bib_level, chmp.marc_vr_format,
-chmp.ref_flag, chmp.holdable
+chmp.ref_flag, chmp.holdable, oou.name as owning_lib, chmp.juvenile_flag,
+chmp.item_age, chmp.distance_is_from_owner, chmp.transit_range, chmp.max_holds,
+chmp.include_frozen_holds, chmp.stop_blocked_user, crahp.name as age_hold_protect_rule
 FROM config.hold_matrix_matchpoint chmp
 LEFT JOIN actor.org_unit aou on chmp.item_circ_ou = aou.id
+LEFT JOIN actor.org_unit oou on chmp.item_owning_ou = oou.id
 LEFT JOIN actor.org_unit rou on chmp.request_ou = rou.id
 LEFT JOIN actor.org_unit uou on chmp.user_home_ou = uou.id
 LEFT JOIN actor.org_unit pou on chmp.pickup_ou = pou.id
+LEFT JOIN config.rule_age_hold_protect crahp on chmp.age_hold_protect_rule = crahp.id
 LEFT JOIN permission.grp_tree rpgt on chmp.requestor_grp = rpgt.id
 LEFT JOIN permission.grp_tree pgt on chmp.usr_grp = pgt.id
 LEFT JOIN permission.grp_descendants_distance(1) rpgad ON chmp.requestor_grp = rpgad.id
