@@ -31,11 +31,11 @@ IO::File->input_record_separator("\x1E\x1D");
 IO::File->output_record_separator("\n");
 
 # options with defaults:
-my $db_user = 'evergreen';
-my $db_host = 'db1';
-my $db_db = 'evergreen';
-my $db_password = 'evergreen';
-my $db_port = 5432;
+my $db_user = $ENV{PGUSER} || 'evergreen';
+my $db_host = $ENV{PGHOST} || 'localhost';
+my $db_db = $ENV{PGDATABASE} || 'evergreen';
+my $db_password = $ENV{PGPASSWORD} || 'evergreen';
+my $db_port = $ENV{PGPORT} || 5432;
 my $source;
 my $strict;
 my $timing;
