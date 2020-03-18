@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------
 # Copyright © 2012, 2013, 2015 Merrimack Valley Library Consortium
 # Jason Stephenson <jstephenson@mvlc.org>
-# Copyright © 2016 Jason Stephenson <jason@sigio.com>
+# Copyright © 2020 Jason Stephenson <jason@sigio.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,34 +24,46 @@ use warnings;
 use DBI;
 use Excel::Writer::XLSX;
 use List::MoreUtils qw/firstidx/;
+use Getopt::Long;
 
 my $inactive_format; # A global format for inactive rows in circ and
                      # hold matrix matchpoint sheets.
 my $bold_format; # Bold for the headers.
 
-my $xlsFile = $ARGV[0] || 'parameters.xlsx';
+my $xlsFile = 'parameters.xlsx'; # Output file.
 
-my $dbh = DBI->connect('DBI:Pg:');
+# Database options with defaults:
+my $db_user = $ENV{PGUSER} || 'evergreen';
+my $db_host = $ENV{PGHOST} || 'localhost';
+my $db_db = $ENV{PGDATABASE} || 'evergreen';
+my $db_password = $ENV{PGPASSWORD} || 'evergreen';
+my $db_port = $ENV{PGPORT} || 5432;
 
-if ($dbh) {
-    my $wb = Excel::Writer::XLSX->new($xlsFile);
-    if ($wb) {
-        $inactive_format = $wb->add_format(bg_color => 'gray');
-        $bold_format = $wb->add_format(bold => 1);
-        do_circ_modifier($dbh, $wb);
-        do_copy_location($dbh, $wb);
-        do_circ_matrix_matchpoint($dbh, $wb);
-        do_circ_matrix_limit_test_map($dbh, $wb);
-        do_grp_penalty_threshold($dbh, $wb);
-        do_hold_matrix_matchpoint($dbh, $wb);
-        $wb->close();
-    } else {
-        print("Failed to create $xlsFile\n");
-    }
-    $dbh->disconnect;
+GetOptions("user=s" => \$db_user,
+           "host=s" => \$db_host,
+           "db=s" => \$db_db,
+           "password=s" => \$db_password,
+           "port=i" => \$db_port,
+           "file=s" => \$xlsFile);
+
+my $dbh = DBI->connect("dbi:Pg:database=$db_db;host=$db_host;port=$db_port;application_name=loaderecords",
+                       $db_user, $db_password) or die("No database connection.");
+
+my $wb = Excel::Writer::XLSX->new($xlsFile);
+if ($wb) {
+    $inactive_format = $wb->add_format(bg_color => 'gray');
+    $bold_format = $wb->add_format(bold => 1);
+    do_circ_modifier($dbh, $wb);
+    do_copy_location($dbh, $wb);
+    do_circ_matrix_matchpoint($dbh, $wb);
+    do_circ_matrix_limit_test_map($dbh, $wb);
+    do_grp_penalty_threshold($dbh, $wb);
+    do_hold_matrix_matchpoint($dbh, $wb);
+    $wb->close();
 } else {
-    die("He's dead, Jim!");
+    print("Failed to create $xlsFile\n");
 }
+$dbh->disconnect;
 
 sub do_circ_modifier {
     my ($dbh, $wb) = @_;
