@@ -92,7 +92,7 @@ sub do_circ_matrix_matchpoint {
                    'user_age_upper', 'item_age', 'circulate',
                    'duration_rule', 'recurring_fine_rule',
                    'max_fine_rule', 'hard_due_date', 'renewals',
-                   'grace_period', 'script_test',
+                   'autorenewals', 'grace_period', 'script_test',
                    'total_copy_hold_ratio',
                    'available_copy_hold_ratio'];
 
@@ -107,6 +107,7 @@ ccmp.usr_age_lower_bound as user_age_lower, ccmp.usr_age_upper_bound as user_age
 ccmp.item_age, chdd.name as hard_due_date,
 ccmp.circulate, crcd.normal as duration_rule, crrf.normal as recurring_fine_rule,
 crmf.amount as max_fine_rule, coalesce(ccmp.renewals, crcd.max_renewals) as renewals,
+crcd.max_auto_renewals as autorenewals,
 coalesce(ccmp.grace_period, crrf.grace_period) as grace_period,
 ccmp.script_test, ccmp.total_copy_hold_ratio, ccmp.available_copy_hold_ratio
 FROM config.circ_matrix_matchpoint ccmp
